@@ -89,6 +89,10 @@ func TestClient_ScanAll(t *testing.T) {
 		}
 	})
 
+	group.AfterEach(func() {
+		callScan = 0
+	})
+
 	err := group.
 		Test("should run scan twice on last evaulated key", func(t *testing.T) {
 			db.ScanFunc = func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
@@ -176,6 +180,10 @@ func TestClient_BatchDeleteItems(t *testing.T) {
 			logger: logger,
 			db:     &db,
 		}
+	})
+
+	group.AfterEach(func() {
+		batchWrite = 0
 	})
 
 	err := group.
