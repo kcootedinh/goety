@@ -1,0 +1,8 @@
+github.com/aws/aws-sdk-go-v2 v1.24.0 h1:890+mqQ+hTpNuw0gGP6/4akolQkSToDJgHfQE7AwGuk=
+github.com/aws/aws-sdk-go-v2 v1.24.0/go.mod h1:LNh45Br1YAkEKaAqvmE1m8FUx6a5b/V0oAKV7of29b4=
+github.com/code-gorilla-au/env v0.0.0-20231101054621-7a54afca2a47 h1:trs2A+qJC8TSCrwHjHo1RakFLSH4P3ExiQL+xg9dJp8=
+github.com/code-gorilla-au/env v0.0.0-20231101054621-7a54afca2a47/go.mod h1:UF4ViNLEMf471i3q0opnUR5fpw0ENIvveo92s0/h12Q=
+github.com/code-gorilla-au/odize v1.1.4 h1:Ihwv/79LAn0SEo1HrXfthy4t3Q+TZT61BL3j3InH+ns=
+github.com/code-gorilla-au/odize v1.1.4/go.mod h1:orZUzigNMH4cXfBHx8BP+fTYiPdkCbaq+dsEFkpP7C0=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
