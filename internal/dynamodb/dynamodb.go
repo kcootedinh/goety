@@ -47,7 +47,7 @@ func (c *Client) Scan(ctx context.Context, input *ddb.ScanInput) (*ddb.ScanOutpu
 		return output, err
 	}
 
-	if output.Items == nil {
+	if len(output.Items) == 0 {
 		c.logger.Error("no items returned")
 		return output, ErrNoItems
 	}
@@ -59,9 +59,11 @@ func (c *Client) ScanAll(ctx context.Context, input *ddb.ScanInput) ([]map[strin
 
 	var lastEvaluatedKey map[string]types.AttributeValue
 
+	c.logger.Info("scanning all items in table ")
+
 	for {
 
-		c.logger.Info("scanning table", "lastEvaluatedKey", JSONStringify(lastEvaluatedKey))
+		c.logger.Debug(fmt.Sprintf("scanning with lastEvaluatedKey: %s", JSONStringify(lastEvaluatedKey)))
 
 		input.ExclusiveStartKey = lastEvaluatedKey
 		output, err := c.db.Scan(ctx, input)
@@ -116,24 +118,27 @@ func (c *Client) BatchDeleteItems(ctx context.Context, tableName string, keys []
 		return output, err
 	}
 
+	if output.UnprocessedItems == nil {
+		c.logger.Debug("batch delete complete")
+		return output, nil
+	}
+
+	c.logger.Debug("unprocessed items detected, processing")
+
 	unprocessedItems := output.UnprocessedItems
 
-	if unprocessedItems != nil {
-		c.logger.Debug("unprocessed items detected, processing")
-
-		for len(unprocessedItems) > 0 {
-			unprocessedInput := ddb.BatchWriteItemInput{
-				RequestItems: unprocessedItems,
-			}
-
-			unprocessedOutput, err := c.db.BatchWriteItem(ctx, &unprocessedInput)
-			if err != nil {
-				c.logger.Error("could not batch delete items", "error", err)
-				return unprocessedOutput, err
-			}
-
-			unprocessedItems = unprocessedOutput.UnprocessedItems
+	for len(unprocessedItems) > 0 {
+		unprocessedInput := ddb.BatchWriteItemInput{
+			RequestItems: unprocessedItems,
 		}
+
+		unprocessedOutput, err := c.db.BatchWriteItem(ctx, &unprocessedInput)
+		if err != nil {
+			c.logger.Error("could not batch delete items", "error", err)
+			return unprocessedOutput, err
+		}
+
+		unprocessedItems = unprocessedOutput.UnprocessedItems
 	}
 	return output, err
 }
