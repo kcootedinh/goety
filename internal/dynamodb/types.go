@@ -1,14 +1,17 @@
 package dynamodb
 
 import (
+	"errors"
 	"log/slog"
+)
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+var (
+	ErrNoItems = errors.New("no items found")
 )
 
 // Client - dynamodb client to query the table (get,put,query,scan)
 type Client struct {
-	db     *dynamodb.Client
+	db     ddbClient
 	logger *slog.Logger
 	dryRun bool
 }

@@ -26,7 +26,7 @@ func NewClient(ctx context.Context, region string, endpoint string) (*Client, er
 func NewWith(ctx context.Context, configOpts func(*config.LoadOptions) error, dbOpts ...func(*ddb.Options)) (*Client, error) {
 
 	client := Client{
-		logger: logging.Logger(),
+		logger: logging.FromContext(ctx),
 	}
 
 	cfg, err := config.LoadDefaultConfig(ctx, configOpts)
@@ -48,8 +48,8 @@ func (c *Client) Scan(ctx context.Context, input *ddb.ScanInput) (*ddb.ScanOutpu
 	}
 
 	if output.Items == nil {
-		c.logger.Info("no items returned")
-		return output, fmt.Errorf("no items returned")
+		c.logger.Error("no items returned")
+		return output, ErrNoItems
 	}
 	return output, nil
 }
@@ -105,6 +105,11 @@ func (c *Client) BatchDeleteItems(ctx context.Context, tableName string, keys []
 		},
 	}
 
+	if c.dryRun {
+		c.logger.Info("dry run enabled, skipping batch delete", "items", JSONStringify(input))
+		return &ddb.BatchWriteItemOutput{}, nil
+	}
+
 	output, err := c.db.BatchWriteItem(ctx, &input)
 	if err != nil {
 		c.logger.Error("could not batch delete items", "error", err)
@@ -114,7 +119,7 @@ func (c *Client) BatchDeleteItems(ctx context.Context, tableName string, keys []
 	unprocessedItems := output.UnprocessedItems
 
 	if unprocessedItems != nil {
-		c.logger.Info("unprocessed items detected, processing")
+		c.logger.Debug("unprocessed items detected, processing")
 
 		for len(unprocessedItems) > 0 {
 			unprocessedInput := ddb.BatchWriteItemInput{
