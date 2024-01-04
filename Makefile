@@ -49,4 +49,4 @@ install: tools-all infra-install ## install golang / node dependencies
 
 
 generate: ## run go generation tools
-	sqlc generate -f ./internal/db/sqlc.yaml
+	go generate ./...

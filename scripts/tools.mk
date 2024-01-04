@@ -11,5 +11,4 @@ tools-scan: ## get all the tools required
 
 
 tools-dev: ## Dev specific tooling
-	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	go install github.com/matryer/moq@latest
