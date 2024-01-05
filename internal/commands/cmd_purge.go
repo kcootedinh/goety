@@ -25,10 +25,10 @@ var purgeCmd = &cobra.Command{
 }
 
 func init() {
-	purgeCmd.PersistentFlags().StringVarP(&flagPurgeTableName, "table", "t", "", "table name")
-	purgeCmd.PersistentFlags().StringVarP(&flagPurgeEndpoint, "endpoint", "e", "", "DynamoDB endpoint to connect to, if none is provide it will use the default aws endpoint")
-	purgeCmd.PersistentFlags().StringVarP(&flagPurgePartitionKey, "partition-key", "p", "pk", "The name of the partition key, default is pk")
-	purgeCmd.PersistentFlags().StringVarP(&flagPurgeSortKey, "sort-key", "s", "sk", "The name of the sort key, default is sk")
+	purgeCmd.Flags().StringVarP(&flagPurgeTableName, "table", "t", "", "table name")
+	purgeCmd.Flags().StringVarP(&flagPurgeEndpoint, "endpoint", "e", "", "DynamoDB endpoint to connect to, if none is provide it will use the default aws endpoint")
+	purgeCmd.Flags().StringVarP(&flagPurgePartitionKey, "partition-key", "p", "pk", "The name of the partition key, default is pk")
+	purgeCmd.Flags().StringVarP(&flagPurgeSortKey, "sort-key", "s", "sk", "The name of the sort key, default is sk")
 }
 
 // purgeFunc is the entry point for the purge command. It will purge a dynamodb table of all items
