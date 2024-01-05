@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/code-gorilla-au/goety/internal/dynamodb"
@@ -27,14 +28,19 @@ var purgeCmd = &cobra.Command{
 func init() {
 	purgeCmd.Flags().StringVarP(&flagPurgeTableName, "table", "t", "", "table name")
 	purgeCmd.Flags().StringVarP(&flagPurgeEndpoint, "endpoint", "e", "", "DynamoDB endpoint to connect to, if none is provide it will use the default aws endpoint")
-	purgeCmd.Flags().StringVarP(&flagPurgePartitionKey, "partition-key", "p", "pk", "The name of the partition key, default is pk")
-	purgeCmd.Flags().StringVarP(&flagPurgeSortKey, "sort-key", "s", "sk", "The name of the sort key, default is sk")
+	purgeCmd.Flags().StringVarP(&flagPurgePartitionKey, "partition-key", "p", "pk", "The name of the partition key")
+	purgeCmd.Flags().StringVarP(&flagPurgeSortKey, "sort-key", "s", "sk", "The name of the sort key")
 }
 
 // purgeFunc is the entry point for the purge command. It will purge a dynamodb table of all items
 func purgeFunc(cmd *cobra.Command, args []string) {
 	log := logging.New(flagRootVerbose)
 	ctx := context.Background()
+
+	if err := parseFlags(); err != nil {
+		log.Error("error parsing flags", "error", err)
+		os.Exit(1)
+	}
 
 	log.Debug("loading dynamodb client")
 	dbClient, err := dynamodb.NewClient(ctx, flagRootAwsRegion, flagPurgeEndpoint)
@@ -53,4 +59,12 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+}
+
+// parseFlags will validate the flags passed to the purge command
+func parseFlags() error {
+	if flagPurgeTableName == "" {
+		return errors.New("table name is required")
+	}
+	return nil
 }
