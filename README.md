@@ -78,3 +78,16 @@ goety purge -t <table-name> -p <partition-key> -s <sort-key> -d
 # with long flags
 goety purge --table <table-name> --partition-key <partition-key> --sort-key <sort-key> --dry-run
 ```
+
+### Verbose
+
+Add additional logs to the output
+
+```bash
+
+# short flags
+goety purge -t <table-name> -p <partition-key> -s <sort-key> -v
+# with long flags
+goety purge --table <table-name> --partition-key <partition-key> --sort-key <sort-key> --verbose
+
+```
