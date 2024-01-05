@@ -66,5 +66,8 @@ func parseFlags() error {
 	if flagPurgeTableName == "" {
 		return errors.New("table name is required")
 	}
+	if flagPurgePartitionKey == "" {
+		return errors.New("partition key is required")
+	}
 	return nil
 }
