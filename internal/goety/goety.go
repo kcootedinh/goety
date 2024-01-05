@@ -27,6 +27,8 @@ func New(client DynamoClient, logger *slog.Logger, dryRun bool) Service {
 //
 //	Purge(ctx, "my-table", TableKeys{ PartitionKey: "pk", SortKey: "sk" })
 func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) error {
+	s.logger.Debug("running purge")
+
 	items, err := s.client.ScanAll(ctx, &dynamodb.ScanInput{
 		TableName:       &tableName,
 		AttributesToGet: []string{keys.PartitionKey, keys.SortKey},
@@ -42,7 +44,7 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 		return nil
 	}
 
-	s.logger.Debug("running purge")
+	s.logger.Debug(fmt.Sprintf("purging %d items", len(items)))
 
 	start := 0
 	end := defaultBatchSize
@@ -56,7 +58,7 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 
 		batchItems := items[start:end]
 
-		s.logger.Debug(fmt.Sprintf("deleting %d items", len(batchItems)))
+		s.logger.Debug(fmt.Sprintf("batch delete %d items", len(batchItems)))
 		_, err = s.client.BatchDeleteItems(ctx, tableName, batchItems)
 		if err != nil {
 			s.logger.Error("could not batch delete items", "error", err)

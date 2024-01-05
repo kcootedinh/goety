@@ -21,5 +21,6 @@ func init() {
 }
 
 func Execute() error {
+	rootCmd.AddCommand(purgeCmd)
 	return rootCmd.Execute()
 }
