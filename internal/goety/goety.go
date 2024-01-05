@@ -42,7 +42,7 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 		return nil
 	}
 
-	s.logger.Info("running purge")
+	s.logger.Debug("running purge")
 
 	start := 0
 	end := defaultBatchSize
@@ -56,7 +56,7 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 
 		batchItems := items[start:end]
 
-		s.logger.Info(fmt.Sprintf("deleting %d items", len(batchItems)))
+		s.logger.Debug(fmt.Sprintf("deleting %d items", len(batchItems)))
 		_, err = s.client.BatchDeleteItems(ctx, tableName, batchItems)
 		if err != nil {
 			s.logger.Error("could not batch delete items", "error", err)

@@ -83,7 +83,7 @@ func (c *Client) ScanAll(ctx context.Context, input *ddb.ScanInput) ([]map[strin
 		}
 	}
 
-	c.logger.Info(fmt.Sprintf("total scan count: %d", len(results)))
+	c.logger.Debug(fmt.Sprintf("total scan count: %d", len(results)))
 	return results, nil
 
 }
