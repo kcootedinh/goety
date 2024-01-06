@@ -8,6 +8,7 @@ import (
 	"github.com/code-gorilla-au/goety/internal/dynamodb"
 	"github.com/code-gorilla-au/goety/internal/goety"
 	"github.com/code-gorilla-au/goety/internal/logging"
+	"github.com/code-gorilla-au/goety/internal/spinner"
 	"github.com/spf13/cobra"
 )
 
@@ -51,6 +52,9 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 
 	g := goety.New(dbClient, log, flagRootDryRun)
 
+	spin := spinner.New()
+	spin.Start("")
+
 	if err = g.Purge(ctx, flagPurgeTableName, goety.TableKeys{
 		PartitionKey: flagPurgePartitionKey,
 		SortKey:      flagPurgeSortKey,
@@ -58,6 +62,8 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 		log.Error("error purging table", "error", err)
 		os.Exit(1)
 	}
+
+	spin.Stop()
 
 }
 

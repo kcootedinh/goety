@@ -59,8 +59,6 @@ func (c *Client) ScanAll(ctx context.Context, input *ddb.ScanInput) ([]map[strin
 
 	var lastEvaluatedKey map[string]types.AttributeValue
 
-	c.logger.Info("scanning all items in table ")
-
 	for {
 
 		c.logger.Debug(fmt.Sprintf("scanning with lastEvaluatedKey: %s", JSONStringify(lastEvaluatedKey)))
@@ -108,7 +106,7 @@ func (c *Client) BatchDeleteItems(ctx context.Context, tableName string, keys []
 	}
 
 	if c.dryRun {
-		c.logger.Info("dry run enabled, skipping batch delete", "items", JSONStringify(input))
+		c.logger.Debug("dry run enabled, skipping batch delete", "items", JSONStringify(input))
 		return &ddb.BatchWriteItemOutput{}, nil
 	}
 
