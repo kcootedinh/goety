@@ -9,6 +9,22 @@ var (
 	ErrContextKeyNotFound = errors.New("context key not found")
 )
 
+var notify = Service{
+	channel: make(chan string, 1),
+}
+
+type Service struct {
+	channel chan string
+}
+
+func (s *Service) Notify(ctx context.Context, message string) {
+	d, err := FromContext[Service, Service](Service{}, ctx)
+	if err != nil {
+		return
+	}
+
+}
+
 // AttachToContext attaches an item to a provided context
 func AttachToContext[T comparable, K any](ctx context.Context, key T, item K) context.Context {
 	return context.WithValue(ctx, key, item)
