@@ -21,7 +21,7 @@ var (
 var purgeCmd = &cobra.Command{
 	Use:   "purge -t [TABLE_NAME] -p [PARTITION_KEY] -s [SORT_KEY]",
 	Short: "purge a dynamodb table of all items",
-	Long:  "purge a dynamodb table of all items",
+	Long:  "purge will scan all items within a dynamodb table and use a batch delete to remove all records",
 	Run:   purgeFunc,
 }
 
