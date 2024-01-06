@@ -29,7 +29,7 @@ func New() *Spinner {
 func (s *Spinner) Start(msg string) {
 	s.UpdateMessage(msg)
 
-	go s.tick(s.frameDuration, func() {
+	go s.tick(func() {
 		s.draw(s.frameDuration)
 	})
 
@@ -38,6 +38,7 @@ func (s *Spinner) Start(msg string) {
 func (s *Spinner) Stop() {
 	s.cleanUp.Do(func() {
 		close(s.notify)
+		clearLine()
 	})
 }
 
@@ -53,8 +54,8 @@ func (s *Spinner) draw(frameDuration time.Duration) {
 	}
 }
 
-func (s *Spinner) tick(fameDuration time.Duration, invokeFn func()) {
-	for {
+func (s *Spinner) tick(invokeFn func()) {
+	for { // run until we receive a signal to stop
 		select {
 		case <-s.notify:
 			return
@@ -65,6 +66,7 @@ func (s *Spinner) tick(fameDuration time.Duration, invokeFn func()) {
 	}
 }
 
+// UpdateMessage updates the spinner message
 func (s *Spinner) UpdateMessage(msg string) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
@@ -72,6 +74,7 @@ func (s *Spinner) UpdateMessage(msg string) {
 	s.message = msg
 }
 
+// clearLine clears the current terminal line
 func clearLine() {
 	fmt.Printf("\033[2K")
 	fmt.Println()
