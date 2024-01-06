@@ -8,6 +8,7 @@ import (
 	"github.com/code-gorilla-au/goety/internal/dynamodb"
 	"github.com/code-gorilla-au/goety/internal/goety"
 	"github.com/code-gorilla-au/goety/internal/logging"
+	"github.com/code-gorilla-au/goety/internal/notify"
 	"github.com/code-gorilla-au/goety/internal/spinner"
 	"github.com/spf13/cobra"
 )
@@ -50,12 +51,14 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	g := goety.New(dbClient, log, flagRootDryRun)
+	notifyService := notify.New(log)
+
+	goetyService := goety.New(dbClient, log, notifyService, flagRootDryRun)
 
 	spin := spinner.New()
 	spin.Start("")
 
-	if err = g.Purge(ctx, flagPurgeTableName, goety.TableKeys{
+	if err = goetyService.Purge(ctx, flagPurgeTableName, goety.TableKeys{
 		PartitionKey: flagPurgePartitionKey,
 		SortKey:      flagPurgeSortKey,
 	}); err != nil {
