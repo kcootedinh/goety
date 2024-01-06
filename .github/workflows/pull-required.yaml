@@ -41,7 +41,7 @@ jobs:
           go-version: ${{ env.GOLANG_VERSION }}
 
       - name: install tools
-        run: make tools-get
+        run: make install-ci
 
       - name: test + lint + scan
         run: make ci
