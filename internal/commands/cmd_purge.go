@@ -57,6 +57,7 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 
 	spin := spinner.New()
 	spin.Start("")
+	defer spin.Stop()
 
 	if err = goetyService.Purge(ctx, flagPurgeTableName, goety.TableKeys{
 		PartitionKey: flagPurgePartitionKey,
@@ -65,8 +66,6 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 		log.Error("error purging table", "error", err)
 		os.Exit(1)
 	}
-
-	spin.Stop()
 
 }
 

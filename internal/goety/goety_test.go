@@ -2,16 +2,18 @@ package goety
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/code-gorilla-au/goety/internal/logging"
+	"github.com/code-gorilla-au/goety/internal/notify"
 	"github.com/code-gorilla-au/odize"
 )
 
 func TestService_Purge(t *testing.T) {
-	var client DynamoClient
+	var client DynamoClientMock
 	var service Service
 	logger := logging.New(true)
 	ctx := logging.WithContext(context.Background(), logger)
@@ -23,7 +25,7 @@ func TestService_Purge(t *testing.T) {
 
 	group.BeforeEach(func() {
 
-		client = &DynamoClientMock{
+		client = DynamoClientMock{
 			ScanAllFunc: func(ctx context.Context, input *dynamodb.ScanInput) ([]map[string]types.AttributeValue, error) {
 				callScanAll++
 				return []map[string]types.AttributeValue{
@@ -40,9 +42,10 @@ func TestService_Purge(t *testing.T) {
 		}
 
 		service = Service{
-			client: client,
+			client: &client,
 			dryRun: false,
 			logger: logger,
+			notify: notify.New(logger),
 		}
 	})
 
@@ -67,6 +70,24 @@ func TestService_Purge(t *testing.T) {
 
 			odize.AssertEqual(t, 1, callScanAll)
 			odize.AssertEqual(t, 0, callBatchDelete)
+		}).
+		Test("should return error if scan fails", func(t *testing.T) {
+			expectedErr := errors.New("scan all error")
+			client.ScanAllFunc = func(ctx context.Context, input *dynamodb.ScanInput) ([]map[string]types.AttributeValue, error) {
+				return nil, expectedErr
+			}
+
+			err := service.Purge(ctx, "my-table", TableKeys{PartitionKey: "pk", SortKey: "sk"})
+			odize.AssertTrue(t, errors.Is(err, expectedErr))
+		}).
+		Test("should return error if batch write fails", func(t *testing.T) {
+			expectedErr := errors.New("batch write error")
+			client.BatchDeleteItemsFunc = func(ctx context.Context, tableName string, keys []map[string]types.AttributeValue) (*dynamodb.BatchWriteItemOutput, error) {
+				return nil, expectedErr
+			}
+
+			err := service.Purge(ctx, "my-table", TableKeys{PartitionKey: "pk", SortKey: "sk"})
+			odize.AssertTrue(t, errors.Is(err, expectedErr))
 		}).
 		Run()
 
