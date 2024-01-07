@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/code-gorilla-au/goety/internal/logging"
-	"github.com/code-gorilla-au/goety/internal/notify"
 	"github.com/code-gorilla-au/odize"
 )
 
@@ -45,7 +44,6 @@ func TestService_Purge(t *testing.T) {
 			client: &client,
 			dryRun: false,
 			logger: logger,
-			notify: notify.New(logger),
 		}
 	})
 

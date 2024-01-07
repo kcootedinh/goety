@@ -13,16 +13,14 @@ type Spinner struct {
 	frameDuration time.Duration
 	mx            sync.Mutex
 	message       string
-	notify        Notifier
 	closer        chan struct{}
 	cleanUp       sync.Once
 }
 
-func New(notify Notifier) *Spinner {
+func New() *Spinner {
 	return &Spinner{
 		sprite:        brailleDots,
 		mx:            sync.Mutex{},
-		notify:        notify,
 		closer:        make(chan struct{}, 1),
 		frameDuration: defaultFrameDuration,
 	}
@@ -37,21 +35,23 @@ func (s *Spinner) Start(msg string) {
 
 }
 
-func (s *Spinner) Stop() {
+// Stop the spinner and optionally, prints the message
+func (s *Spinner) Stop(message string) {
 	s.cleanUp.Do(func() {
 		close(s.closer)
 		clearLine()
+
+		if message != "" {
+			fmt.Println(message)
+		}
 	})
 }
 
+// draw the spinner
 func (s *Spinner) draw(frameDuration time.Duration) {
 	output := ""
 
 	for _, frame := range s.sprite {
-		msg := s.notify.GetMessage()
-		if msg.Message != "" {
-			s.UpdateMessage(msg.Message)
-		}
 
 		output = frame + "  " + s.message
 		fmt.Print(output)

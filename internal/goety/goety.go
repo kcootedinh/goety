@@ -7,19 +7,17 @@ import (
 	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/code-gorilla-au/goety/internal/notify"
 )
 
 const (
 	defaultBatchSize = 25
 )
 
-func New(client DynamoClient, logger *slog.Logger, notify Notifier, dryRun bool) Service {
+func New(client DynamoClient, logger *slog.Logger, dryRun bool) Service {
 	return Service{
 		client: client,
 		dryRun: dryRun,
 		logger: logger,
-		notify: notify,
 	}
 }
 
@@ -43,7 +41,6 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 	if s.dryRun {
 		s.logger.Debug("dry run enabled")
 		prettyPrint(items)
-		s.notify.Send(notify.Message{Message: "dry run"})
 		return nil
 	}
 
@@ -71,11 +68,6 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 		deleted += len(batchItems)
 		start = end
 		end += defaultBatchSize
-
-		s.notify.Send(notify.Message{
-			Message: fmt.Sprintf("deleted %d items", deleted),
-		})
-
 	}
 
 	s.logger.Debug(fmt.Sprintf("purge complete, deleted: %d", deleted))
