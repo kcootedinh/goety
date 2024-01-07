@@ -43,6 +43,7 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 	if s.dryRun {
 		s.logger.Debug("dry run enabled")
 		prettyPrint(items)
+		s.notify.Send(notify.Message{Message: "dry run"})
 		return nil
 	}
 
@@ -78,7 +79,6 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 	}
 
 	s.logger.Debug(fmt.Sprintf("purge complete, deleted: %d", deleted))
-
 	return nil
 }
 

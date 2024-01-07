@@ -13,15 +13,17 @@ type Spinner struct {
 	frameDuration time.Duration
 	mx            sync.Mutex
 	message       string
-	notify        chan struct{}
+	notify        Notifier
+	closer        chan struct{}
 	cleanUp       sync.Once
 }
 
-func New() *Spinner {
+func New(notify Notifier) *Spinner {
 	return &Spinner{
 		sprite:        brailleDots,
 		mx:            sync.Mutex{},
-		notify:        make(chan struct{}),
+		notify:        notify,
+		closer:        make(chan struct{}, 1),
 		frameDuration: defaultFrameDuration,
 	}
 }
@@ -37,7 +39,7 @@ func (s *Spinner) Start(msg string) {
 
 func (s *Spinner) Stop() {
 	s.cleanUp.Do(func() {
-		close(s.notify)
+		close(s.closer)
 		clearLine()
 	})
 }
@@ -46,6 +48,11 @@ func (s *Spinner) draw(frameDuration time.Duration) {
 	output := ""
 
 	for _, frame := range s.sprite {
+		msg := s.notify.GetMessage()
+		if msg.Message != "" {
+			s.UpdateMessage(msg.Message)
+		}
+
 		output = frame + "  " + s.message
 		fmt.Print(output)
 
@@ -57,7 +64,7 @@ func (s *Spinner) draw(frameDuration time.Duration) {
 func (s *Spinner) tick(invokeFn func()) {
 	for { // run until we receive a signal to stop
 		select {
-		case <-s.notify:
+		case <-s.closer:
 			return
 		default:
 			invokeFn()

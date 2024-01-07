@@ -52,12 +52,15 @@ func purgeFunc(cmd *cobra.Command, args []string) {
 	}
 
 	notifyService := notify.New(log)
+	defer notifyService.Close()
 
 	goetyService := goety.New(dbClient, log, notifyService, flagRootDryRun)
 
-	spin := spinner.New()
-	spin.Start("")
-	defer spin.Stop()
+	if !flagRootVerbose {
+		spin := spinner.New(notifyService)
+		spin.Start("")
+		defer spin.Stop()
+	}
 
 	if err = goetyService.Purge(ctx, flagPurgeTableName, goety.TableKeys{
 		PartitionKey: flagPurgePartitionKey,

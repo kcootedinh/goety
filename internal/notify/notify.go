@@ -31,6 +31,11 @@ func (s *Service) GetMessage() Message {
 	return <-s.channel
 }
 
+// Close closes the notify service
+func (s *Service) Close() {
+	close(s.channel)
+}
+
 // AttachToContext attaches an item to a provided context
 func AttachToContext[T comparable, K any](ctx context.Context, key T, item K) context.Context {
 	return context.WithValue(ctx, key, item)
