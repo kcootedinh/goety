@@ -9,7 +9,7 @@ import (
 func main() {
 
 	spin := spinner.New()
-	defer spin.Stop()
+	defer spin.Stop("")
 	spin.Start("starting")
 	time.Sleep(1 * time.Second)
 	spin.UpdateMessage("first message")
