@@ -7,18 +7,20 @@ import (
 	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/code-gorilla-au/goety/internal/emitter"
 )
 
 const (
 	defaultBatchSize = 25
 )
 
-func New(client DynamoClient, logger *slog.Logger, dryRun bool) Service {
+func New(client DynamoClient, logger *slog.Logger, emitter emitter.MessagePublisher, dryRun bool) Service {
 	return Service{
 		client:     client,
 		dryRun:     dryRun,
 		logger:     logger,
 		fileWriter: &WriteFile{},
+		emitter:    emitter,
 	}
 }
 
@@ -28,7 +30,7 @@ func New(client DynamoClient, logger *slog.Logger, dryRun bool) Service {
 //
 //	Purge(ctx, "my-table", TableKeys{ PartitionKey: "pk", SortKey: "sk" })
 func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) error {
-	s.logger.Debug("running purge")
+	s.emitter.Publish(fmt.Sprintf("scanning table %s for items to purge", tableName))
 
 	items, err := s.client.ScanAll(ctx, &dynamodb.ScanInput{
 		TableName:       &tableName,
@@ -39,13 +41,13 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 		return err
 	}
 
+	s.emitter.Publish(fmt.Sprintf("items %d scanned, beginning purge", len(items)))
+
 	if s.dryRun {
 		s.logger.Debug("dry run enabled")
 		prettyPrint(items)
 		return nil
 	}
-
-	s.logger.Debug(fmt.Sprintf("purging %d items", len(items)))
 
 	start := 0
 	end := defaultBatchSize
@@ -71,13 +73,17 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 		end += defaultBatchSize
 	}
 
-	s.logger.Debug(fmt.Sprintf("purge complete, deleted: %d", deleted))
+	s.emitter.Publish(fmt.Sprintf("purge complete, deleted %d items", deleted))
 	return nil
 }
 
 // Dump all items from the given table
+//
+// Example:
+//
+//	Dump(ctx, "my-table", "path/to/file.json")
 func (s Service) Dump(ctx context.Context, tableName string, path string) error {
-	s.logger.Debug("running dump")
+	s.emitter.Publish(fmt.Sprintf("dumping table %s to file %s", tableName, path))
 
 	items, err := s.client.ScanAll(ctx, &dynamodb.ScanInput{
 		TableName: &tableName,
@@ -87,13 +93,16 @@ func (s Service) Dump(ctx context.Context, tableName string, path string) error 
 		return err
 	}
 
+	s.emitter.Publish(fmt.Sprintf("scanned %d items", len(items)))
+
 	if s.dryRun {
 		s.logger.Debug("dry run enabled")
 		prettyPrint(items)
 		return nil
 	}
 
-	s.logger.Debug("saving to file", "filePath", path)
+	message := fmt.Sprintf("saving %d items to file ", len(items)) + path
+	s.emitter.Publish(message)
 	data, err := json.Marshal(items)
 	if err != nil {
 		s.logger.Error("could not marshal items", "error", err)
@@ -105,6 +114,7 @@ func (s Service) Dump(ctx context.Context, tableName string, path string) error 
 		return err
 	}
 
+	s.emitter.Publish("dump complete")
 	return nil
 }
 
