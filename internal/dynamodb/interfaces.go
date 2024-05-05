@@ -6,6 +6,10 @@ import (
 	ddb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
+type Scanner interface {
+	Scan(ctx context.Context, input *ddb.ScanInput) (*ddb.ScanOutput, error)
+}
+
 //go:generate moq -rm -stub -out mocks_test.go . ddbClient
 type ddbClient interface {
 	Scan(ctx context.Context, params *ddb.ScanInput, optFns ...func(*ddb.Options)) (*ddb.ScanOutput, error)
