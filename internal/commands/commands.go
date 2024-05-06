@@ -10,8 +10,8 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "goety [COMMAND] --[FLAGS]",
-	Short: "dynamodb helper tool",
-	Long:  "dynamodb purge tool",
+	Short: "dynamodb power tools",
+	Long:  "Power tools to interact with dynamodb tables",
 }
 
 func init() {

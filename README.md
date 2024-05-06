@@ -16,7 +16,7 @@ go install https://github.com/code-gorilla-au/goety@latest
 
 goety 
 
-dynamodb purge tool
+Power tools to interact with dynamodb tables
 
 Usage:
   goety [command]
@@ -26,6 +26,7 @@ Available Commands:
   dump        dump the contents of a dynamodb to a file
   help        Help about any command
   purge       purge a dynamodb table of all items
+  seed        seed a dynamodb table from file
 
 Flags:
   -r, --aws-region string   aws region the table is located (default "ap-southeast-2")
@@ -67,15 +68,41 @@ Usage:
   goety dump -t [TABLE_NAME] [flags]
 
 Flags:
-  -e, --endpoint string   DynamoDB endpoint to connect to, if none is provide it will use the default aws endpoint
-  -h, --help              help for dump
-  -p, --path string       file path to save the json output
-  -t, --table string      table name
+  -N, --attribute-name string    Filter expression attribute names
+  -V, --attribute-value string   Filter expression attribute values
+  -a, --attributes strings       Optionally specify a list of attributes to extract from the table
+  -e, --endpoint string          DynamoDB endpoint to connect to, if none is provide it will use the default aws endpoint
+  -f, --filter string            Filter expression to apply to the scan operation
+  -h, --help                     help for dump
+  -l, --limit int32              Limit the number of items to dump
+  -P, --path string              file path to save the json output
+  -t, --table string             table name
 
 Global Flags:
   -r, --aws-region string   aws region the table is located (default "ap-southeast-2")
   -d, --dry-run             dry run does not perform actions, only logs them
   -v, --verbose             add verbose logging
+```
+
+## Seed
+
+```bash
+seed will read a json file and write the contents to a dynamodb table
+
+Usage:
+  goety seed -t [TABLE_NAME] -f [FILE_PATH] [flags]
+
+Flags:
+  -e, --endpoint string   DynamoDB endpoint to connect to, if none is provide it will use the default aws endpoint
+  -f, --file string       File path
+  -h, --help              help for seed
+  -t, --table string      Table name
+
+Global Flags:
+  -r, --aws-region string   aws region the table is located (default "ap-southeast-2")
+  -d, --dry-run             dry run does not perform actions, only logs them
+  -v, --verbose             add verbose logging
+
 ```
 
 ### Basic usage
