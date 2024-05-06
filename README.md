@@ -1,6 +1,6 @@
 # goety
 
-[goety](https://www.merriam-webster.com/dictionary/goety) is a small cli to help with common actions when working with dynamodb
+[goety](https://www.merriam-webster.com/dictionary/goety) is a small cli to help with common actions when working with dynamodb.
 
 ## Install
 
