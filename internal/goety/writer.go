@@ -13,3 +13,8 @@ func (w *WriteFile) WriteFile(name string, data []byte, perm fs.FileMode) error 
 	}
 	return os.WriteFile(name, data, perm)
 }
+
+func (w *WriteFile) ReadFile(name string) ([]byte, error) {
+	cleanFile := filepath.Clean(name)
+	return os.ReadFile(cleanFile)
+}

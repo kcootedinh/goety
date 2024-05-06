@@ -3,11 +3,12 @@ package goety
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddb "github.com/code-gorilla-au/goety/internal/dynamodb"
 	"github.com/code-gorilla-au/goety/internal/emitter"
@@ -44,9 +45,9 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 
 	for !done {
 		out, err, done = next(&dynamodb.ScanInput{
-			TableName: &tableName,
+			TableName:       &tableName,
 			AttributesToGet: []string{keys.PartitionKey, keys.SortKey},
-			Limit:    aws.Int32(defaultBatchSize),
+			Limit:           aws.Int32(defaultBatchSize),
 		})
 		if err != nil {
 			s.logger.Error("could not scan table", "error", err)
@@ -71,7 +72,7 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 		deleted += len(out.Items)
 
 		s.emitter.Publish(fmt.Sprintf("deleted %d items", deleted))
-		
+
 	}
 
 	s.emitter.Publish(fmt.Sprintf("purge complete, deleted %d items", deleted))
@@ -83,14 +84,10 @@ func (s Service) Purge(ctx context.Context, tableName string, keys TableKeys) er
 // Example:
 //
 //	Dump(ctx, "my-table", "path/to/file.json", []string{"attr1", "attr2"})
-func (s Service) Dump(ctx context.Context, tableName string, path string, attrs ...string) error {
+func (s Service) Dump(ctx context.Context, tableName string, path string, opts ...QueryFuncOpts) error {
 	s.emitter.Publish(fmt.Sprintf("dumping table %s to file %s", tableName, path))
 
-	var projExp *string
-
-	if len(attrs) > 0 {
-		projExp = aws.String(strings.Join(attrs, ", "))
-	}
+	queryOpts := WithQueryOptions(opts)
 
 	done := false
 	var err error
@@ -99,12 +96,18 @@ func (s Service) Dump(ctx context.Context, tableName string, path string, attrs 
 
 	result := []map[string]any{}
 
+	itemsScanned := 0
+
 	for !done {
-		output, err, done = next(&dynamodb.ScanInput{
-			TableName:            &tableName,
-			ProjectionExpression: projExp,
-		})
-		if err != nil {
+		output, err, done = next(
+			&dynamodb.ScanInput{
+				TableName:                 &tableName,
+				ProjectionExpression:      queryOpts.ProjectedExpressions,
+				FilterExpression:          queryOpts.FilterExpression,
+				ExpressionAttributeNames:  queryOpts.FilterNameAttributes,
+				ExpressionAttributeValues: queryOpts.FilterNameValues,
+			})
+		if err != nil && !errors.Is(err, ddb.ErrNoItems) {
 			s.logger.Error("could not scan table", "error", err)
 			return err
 		}
@@ -119,6 +122,10 @@ func (s Service) Dump(ctx context.Context, tableName string, path string, attrs 
 			return transformErr
 		}
 		result = append(result, items...)
+
+		itemsScanned += len(output.Items)
+		s.emitter.Publish(fmt.Sprintf("scanned %d items", itemsScanned))
+
 	}
 
 	s.emitter.Publish(fmt.Sprintf("scanned %d items", len(result)))
@@ -143,6 +150,52 @@ func (s Service) Dump(ctx context.Context, tableName string, path string, attrs 
 	}
 
 	s.emitter.Publish("dump complete")
+	s.logger.Info("dump complete", "items", itemsScanned)
+	return nil
+}
+
+// Seed a table with items from a json file
+//
+// Example:
+//
+//	Seed(ctx, "my-table", "path/to/file.json")
+func (s Service) Seed(ctx context.Context, tableName string, filePath string) error {
+	s.emitter.Publish(fmt.Sprintf("putting items to table %s", tableName))
+
+	data, err := s.fileWriter.ReadFile(filePath)
+	if err != nil {
+		s.logger.Error("could not read file", "error", err)
+		return err
+	}
+
+	itemList := []map[string]any{}
+	if err := json.Unmarshal(data, &itemList); err != nil {
+		s.logger.Error("could not unmarshal file", "error", err)
+		return err
+	}
+
+	if s.dryRun {
+		s.logger.Debug("dry run enabled")
+		prettyPrint(itemList)
+		return nil
+	}
+
+	for _, item := range itemList {
+		payload, err := attributevalue.MarshalMap(item)
+		if err != nil {
+			s.logger.Error("could not marshal item", "error", err)
+			return err
+		}
+
+		if _, err := s.client.Put(ctx, &dynamodb.PutItemInput{
+			TableName: &tableName,
+			Item:      payload,
+		}); err != nil {
+			return err
+		}
+	}
+
+	s.emitter.Publish("put complete")
 	return nil
 }
 

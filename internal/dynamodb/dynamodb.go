@@ -39,6 +39,7 @@ func NewWith(ctx context.Context, configOpts func(*config.LoadOptions) error, db
 	return &client, nil
 }
 
+// Scan - scans a dynamodb table
 func (c *Client) Scan(ctx context.Context, input *ddb.ScanInput) (*ddb.ScanOutput, error) {
 	output, err := c.db.Scan(ctx, input)
 	if err != nil {
@@ -46,13 +47,13 @@ func (c *Client) Scan(ctx context.Context, input *ddb.ScanInput) (*ddb.ScanOutpu
 		return output, err
 	}
 
-	if len(output.Items) == 0 {
-		c.logger.Error("no items returned")
-		return output, ErrNoItems
-	}
 	return output, nil
 }
 
+// Put - puts an item into a dynamodb table
+func (c *Client) Put(ctx context.Context, input *ddb.PutItemInput) (*ddb.PutItemOutput, error) {
+	return c.db.PutItem(ctx, input)
+}
 
 // BatchDeleteItems - deletes items in a batch Note, max size is 25 items within a batch
 func (c *Client) BatchDeleteItems(ctx context.Context, tableName string, keys []map[string]types.AttributeValue) (*ddb.BatchWriteItemOutput, error) {
