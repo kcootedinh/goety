@@ -76,10 +76,7 @@ func extractAttrValue(value types.AttributeValue) (any, error) {
 				return nil, err
 			}
 		}
-		returnVal, err = FlattenAttrValue(v.Value)
-		if err != nil {
-			return nil, err
-		}
+		returnVal = result
 	case *types.AttributeValueMemberL:
 		result := []any{}
 		for _, item := range v.Value {
