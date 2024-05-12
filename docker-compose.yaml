@@ -1,0 +1,15 @@
+services:
+  db:
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    image: "amazon/dynamodb-local:latest"
+    container_name: goety-db
+    user: root
+    ports:
+      - "8100:8000"
+    volumes:
+      - dynamo-data:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+
+volumes:
+  database-data:
+  dynamo-data:
