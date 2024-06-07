@@ -131,7 +131,7 @@ goety purge --table <table-name> --partition-key <partition-key> --sort-key <sor
 
 ### Verbose
 
-Add additional logs to the output
+Add additional logs to the output.
 
 ```bash
 
