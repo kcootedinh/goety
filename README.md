@@ -107,7 +107,7 @@ Global Flags:
 
 ### Basic usage
 
-gets started
+getting started.
 
 ```bash
 
