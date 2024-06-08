@@ -2,6 +2,8 @@
 
 [goety](https://www.merriam-webster.com/dictionary/goety) is a small cli to help with common actions when working with dynamodb.
 
+Purge tables, dump data into a json file, seed tables from json file.
+
 ## Install
 
 ## Using golang
