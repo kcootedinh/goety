@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -17,7 +16,7 @@ type mockEmitter struct {
 	publishFunc func(message string)
 }
 
-func (m *mockEmitter) Publish(message string) {}
+func (m *mockEmitter) Publish(string) {}
 
 func TestService_Purge(t *testing.T) {
 	var client DynamoClientMock
@@ -116,28 +115,29 @@ func TestService_Purge(t *testing.T) {
 
 }
 
-type mockWriteFile struct {
-	writeFileFunc func(filename string, data []byte) error
-	readFileFunc  func(filename string) ([]byte, error)
+type mockWriter struct {
+	writeFunc       func(p []byte) (n int, err error)
+	writeStringFunc func(s string) (n int, err error)
 }
 
-func (m *mockWriteFile) WriteFile(name string, data []byte, perm fs.FileMode) error {
-	return m.writeFileFunc(name, data)
+func (m *mockWriter) Write(p []byte) (n int, err error) {
+	return m.writeFunc(p)
 }
 
-func (m *mockWriteFile) ReadFile(name string) ([]byte, error) {
-	return m.readFileFunc(name)
+func (m *mockWriter) WriteString(s string) (n int, err error) {
+	return m.writeStringFunc(s)
 }
 
 func TestService_Dump(t *testing.T) {
 	var client DynamoClientMock
 	var service Service
-	var fileWriter mockWriteFile
+	var writer mockWriter
 	logger := logging.New(true)
 	ctx := logging.WithContext(context.Background(), logger)
 
 	callScanAll := 0
-	callWriteFile := 0
+	callWrite := 0
+	callWriteString := 0
 
 	group := odize.NewGroup(t, nil)
 
@@ -157,19 +157,21 @@ func TestService_Dump(t *testing.T) {
 			},
 		}
 
-		fileWriter = mockWriteFile{
-			writeFileFunc: func(filename string, data []byte) error {
-				fmt.Println("writing file", string(data))
-				callWriteFile++
-				return nil
+		writer = mockWriter{
+			writeFunc: func(p []byte) (n int, err error) {
+				callWrite++
+				return len(p), nil
+			},
+			writeStringFunc: func(s string) (n int, err error) {
+				callWriteString++
+				return len(s), nil
 			},
 		}
 
 		service = Service{
-			client:     &client,
-			dryRun:     false,
-			logger:     logger,
-			fileWriter: &fileWriter,
+			client: &client,
+			dryRun: false,
+			logger: logger,
 			emitter: &mockEmitter{
 				publishFunc: func(message string) {},
 			},
@@ -178,12 +180,13 @@ func TestService_Dump(t *testing.T) {
 
 	group.AfterEach(func() {
 		callScanAll = 0
-		callWriteFile = 0
+		callWrite = 0
+		callWriteString = 0
 	})
 
 	err := group.
 		Test("should dump items", func(t *testing.T) {
-			err := service.Dump(ctx, "my-table", "path")
+			err := service.Dump(ctx, "my-table", &writer)
 			odize.AssertNoError(t, err)
 
 			odize.AssertEqual(t, 1, callScanAll)
@@ -191,41 +194,36 @@ func TestService_Dump(t *testing.T) {
 		Test("should dump items on dry run", func(t *testing.T) {
 			service.dryRun = true
 
-			err := service.Dump(ctx, "my-table", "path")
+			err := service.Dump(ctx, "my-table", &writer)
 			odize.AssertNoError(t, err)
 
 			odize.AssertEqual(t, 1, callScanAll)
-			odize.AssertEqual(t, 0, callWriteFile)
+			odize.AssertEqual(t, 0, callWrite)
 		}).
 		Test("should output", func(t *testing.T) {
-			fileWriter = mockWriteFile{
-				writeFileFunc: func(filename string, data []byte) error {
-					callWriteFile++
-					odize.AssertEqual(t, "[{\"pk\":\"pk\",\"sk\":\"sk\"}]", string(data))
-					return nil
-				},
+			writer.writeFunc = func(p []byte) (n int, err error) {
+				callWrite++
+				odize.AssertEqual(t, "{\"pk\":\"pk\",\"sk\":\"sk\"}\n", string(p))
+				return len(p), nil
 			}
-
-			err := service.Dump(ctx, "my-table", "path")
+			err := service.Dump(ctx, "my-table", &writer)
 			odize.AssertNoError(t, err)
 
 			odize.AssertEqual(t, 1, callScanAll)
-			odize.AssertEqual(t, 1, callWriteFile)
+			odize.AssertEqual(t, 1, callWrite)
 		}).
 		Test("should output raw", func(t *testing.T) {
-			fileWriter = mockWriteFile{
-				writeFileFunc: func(filename string, data []byte) error {
-					callWriteFile++
-					odize.AssertEqual(t, `[{"pk":{"S":"pk"},"sk":{"S":"sk"}}]`, string(data))
-					return nil
-				},
+			writer.writeFunc = func(p []byte) (n int, err error) {
+				callWrite++
+				odize.AssertEqual(t, "{\"pk\":{\"S\":\"pk\"},\"sk\":{\"S\":\"sk\"}}\n", string(p))
+				return len(p), nil
 			}
 
-			err := service.Dump(ctx, "my-table", "path", WithRawOutput(true))
+			err := service.Dump(ctx, "my-table", &writer, WithRawOutput(true))
 			odize.AssertNoError(t, err)
 
 			odize.AssertEqual(t, 1, callScanAll)
-			odize.AssertEqual(t, 1, callWriteFile)
+			odize.AssertEqual(t, 1, callWrite)
 		}).
 		Test("should return error if scan fails", func(t *testing.T) {
 			expectedErr := errors.New("scan all error")
@@ -233,16 +231,16 @@ func TestService_Dump(t *testing.T) {
 				return nil, expectedErr
 			}
 
-			err := service.Dump(ctx, "my-table", "path")
+			err := service.Dump(ctx, "my-table", &writer)
 			odize.AssertTrue(t, errors.Is(err, expectedErr))
 		}).
 		Test("should return error if file write fails", func(t *testing.T) {
 			expectedErr := errors.New("write file error")
-			fileWriter.writeFileFunc = func(filename string, data []byte) error {
-				return expectedErr
+			writer.writeFunc = func(data []byte) (int, error) {
+				return 0, expectedErr
 			}
 
-			err := service.Dump(ctx, "my-table", "path")
+			err := service.Dump(ctx, "my-table", &writer)
 			fmt.Println("ooooo", err)
 			odize.AssertTrue(t, errors.Is(err, expectedErr))
 		}).
@@ -263,7 +261,7 @@ func TestService_Dump(t *testing.T) {
 
 			}
 
-			err := service.Dump(ctx, "my-table", "path", WithAttrs(attrExp))
+			err := service.Dump(ctx, "my-table", &writer, WithAttrs(attrExp))
 			odize.AssertNoError(t, err)
 		}).
 		Run()

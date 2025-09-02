@@ -2,7 +2,7 @@ package goety
 
 import (
 	"context"
-	"io/fs"
+	"io"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -18,17 +18,9 @@ type DynamoClient interface {
 
 var _ DynamoClient = (*ddb.Client)(nil)
 
-type fileWriter interface {
-	WriteFile(name string, data []byte, perm fs.FileMode) error
-}
-
-type fileReader interface {
-	ReadFile(name string) ([]byte, error)
-}
-
-type fileReaderWriter interface {
-	fileWriter
-	fileReader
+type Writer interface {
+	io.Writer
+	io.StringWriter
 }
 
 type Emitter interface {

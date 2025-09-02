@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/code-gorilla-au/goety/internal/dynamodb"
@@ -62,6 +64,20 @@ func dumpFunc(cmd *cobra.Command, args []string) {
 
 	msgEmitter := emitter.New()
 
+	var writer goety.Writer
+	if flagRootDryRun {
+		log.Info("dry run enabled, no file will be created")
+		writer = &bytes.Buffer{}
+	} else {
+		file, err := os.Create(flagDumpFilePath)
+		if err != nil {
+			fmt.Println("Error creating file:", err)
+			return
+		}
+		defer file.Close()
+		writer = file
+	}
+
 	g := goety.New(dbClient, log, msgEmitter, flagRootDryRun)
 
 	if !flagRootVerbose {
@@ -72,7 +88,7 @@ func dumpFunc(cmd *cobra.Command, args []string) {
 	_ = g.Dump(
 		ctx,
 		flagDumpTableName,
-		flagDumpFilePath,
+		writer,
 		goety.WithAttrs(flagDumpExtractAttrs),
 		goety.WithLimit(flagDumpLimit),
 		goety.WithFilterExpression(flagDumpFilterExp),
